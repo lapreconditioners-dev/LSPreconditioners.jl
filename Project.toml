@@ -1,0 +1,7 @@
+name = "LSPreconditioners"
+uuid = "832a7c35-bec8-47db-9a10-ba10a5a23898"
+authors = ["Nathaniel Pritchard <npritchard@wisc.edu>", "Adrian Maldonado <maldonadod@anl.gov>"]
+version = "0.1.0"
+
+[deps]
+LazySets = "b4f0291d-fe17-52bc-9479-3d1a343d9043"
