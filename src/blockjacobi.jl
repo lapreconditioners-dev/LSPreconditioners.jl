@@ -1,3 +1,6 @@
+using SuiteSparse
+using SparseArrays
+using LinearAlgebra
 mutable struct BlockJacobi{T, S<:AbstractMatrix{T}} <: LSPreconditioners.Preconditioner
     nblocks :: Int64
     blocksizes :: Array{Int32}
