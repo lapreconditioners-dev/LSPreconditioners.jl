@@ -1,6 +1,7 @@
 using SuiteSparse
 using SparseArrays
 using LinearAlgebra
+using BandedMatrices
 
 mutable struct BlockJacobi{T, S<:AbstractMatrix{T}} <: LSPreconditioners.Preconditioner
     nblocks::Int64
@@ -22,7 +23,7 @@ function BlockJacobi(A::Matrix, blocksize::Integer)
     end
 
     bsizes[nblocks] = remB == 0 ? blocksize : remB
-    blocks = typeof(A) <: SparseMatrixCSC ? Vector{SuiteSparse.UMFPACK.UmfpackLU{Float64, Int64}}(undef, nblocks) : Vector{LU{T, Matrix{T}, Vector{Int32}}}(undef, nblocks)
+    blocks = get_blocks(A, nblocks)
     endp = 0
     for i in 1:nblocks
         startp = endp + 1
@@ -42,3 +43,18 @@ function LinearAlgebra.mul!(x, P::BlockJacobi, y)
         @views ldiv!(x[startp:endp], P.blocks[i], y[startp:endp])
     end
 end
+
+function get_blocks(A::SparseMatrixCSC, nblocks)
+    T = eltype(A)
+    return Vector{SuiteSparse.UMFPACK.UmfpackLU{T, Int64}}(undef, nblocks)
+end 
+
+function get_blocks(A::Matrix, nblocks)
+    T = eltype(A)
+    return Vector{LU{T, Matrix{T}, Vector{Int32}}}(undef, nblocks)
+end 
+
+function get_blocks(A::BandedMatrix, nblocks)
+    T = eltype(A)
+    return Vector{BandedMatrices.BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int64}}}}(undef, nblocks) 
+end 
