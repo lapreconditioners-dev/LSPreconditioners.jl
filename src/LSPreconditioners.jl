@@ -1,6 +1,8 @@
 module LSPreconditioners
 
-import LinearAlgebra: mul!, diag, LU
+import LinearAlgebra: mul!, diag, lu, LU
+import SparseArrays: SparseMatrixCSC
+import BandedMatrices
 abstract type Preconditioner end
 
 include("diagonal.jl")
