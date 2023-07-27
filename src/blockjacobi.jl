@@ -1,7 +1,7 @@
 mutable struct BlockJacobi{T, S<:AbstractMatrix{T}} <: LSPreconditioners.Preconditioner
     nblocks::Int64
     blocksizes::Array{Int}
-    blocks::Vector{Union{LU{T, Matrix{T}, Vector{Int}}, UmfpackLU{T, Int}}}
+    blocks::Vector{Union{LU{T, Matrix{T}, Vector{Int}}, UmfpackLU{T, Int}, BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}}}}
 end
 
 Base.eltype(::BlockJacobi{T, S}) where {T, S} = T
