@@ -1,22 +1,17 @@
-using SuiteSparse
-using SparseArrays
-using LinearAlgebra
-using BandedMatrices
-
 mutable struct BlockJacobi{T, S<:AbstractMatrix{T}} <: LSPreconditioners.Preconditioner
     nblocks::Int64
-    blocksizes::Array{Int32}
-    blocks::Vector{Union{LU{T, Matrix{T}, Vector{Int32}}, SuiteSparse.UMFPACK.UmfpackLU{Float64, Int64}}}
+    blocksizes::Array{Int}
+    blocks::Vector{Union{LU{T, Matrix{T}, Vector{Int}}, UmfpackLU{T, Int}, BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}}}}
 end
 
 Base.eltype(::BlockJacobi{T, S}) where {T, S} = T
 
 # Function to form a block Jacobi preconditioner
-function BlockJacobi(A::Matrix, blocksize::Integer)
+function BlockJacobi(A::AbstractMatrix, blocksize::Integer)
     m = size(A, 1)
     remB = rem(m, blocksize)
     nblocks = div(m, blocksize) + (remB == 0 ? 0 : 1)
-    bsizes = Array{Int32}(undef, nblocks)
+    bsizes = Array{Int}(undef, nblocks)
     T = eltype(A)
     for i in 1:nblocks-1
         bsizes[i] = blocksize
@@ -28,10 +23,15 @@ function BlockJacobi(A::Matrix, blocksize::Integer)
     for i in 1:nblocks
         startp = endp + 1
         endp = startp + bsizes[i] - 1
-        @views blocks[i] = lu(A[startp:endp, startp:endp])
+        blocks[i] = lu(A[startp:endp, startp:endp])
     end
 
     return BlockJacobi{eltype(A), typeof(A)}(nblocks, bsizes, blocks)
+end
+
+function BlockJacobi(A)
+    blocksize = min(Int(ceil(size(A, 1)/10)), 100)
+    return BlockJacobi(A, blocksize)
 end
 
 #Function to apply block jacobi preconditioner
@@ -40,21 +40,21 @@ function LinearAlgebra.mul!(x, P::BlockJacobi, y)
     for i in 1:P.nblocks
         startp = endp + 1 
         endp = startp + P.blocksizes[i] - 1 
-        @views ldiv!(x[startp:endp], P.blocks[i], y[startp:endp])
+        ldiv!(x[startp:endp], P.blocks[i], y[startp:endp])
     end
 end
 
 function get_blocks(A::SparseMatrixCSC, nblocks)
     T = eltype(A)
-    return Vector{SuiteSparse.UMFPACK.UmfpackLU{T, Int64}}(undef, nblocks)
+    return Vector{UmfpackLU{T, Int}}(undef, nblocks)
 end 
 
 function get_blocks(A::Matrix, nblocks)
     T = eltype(A)
-    return Vector{LU{T, Matrix{T}, Vector{Int32}}}(undef, nblocks)
+    return Vector{LU{T, Matrix{T}, Vector{Int}}}(undef, nblocks)
 end 
 
 function get_blocks(A::BandedMatrix, nblocks)
     T = eltype(A)
-    return Vector{BandedMatrices.BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int64}}}}(undef, nblocks) 
+    return Vector{BandedMatrices.BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}}}(undef, nblocks) 
 end 

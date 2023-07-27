@@ -7,20 +7,27 @@ using Random
 Random.seed!(1234)
 itmax = 100
 
-coefficients = 1:6
+coefficients = 1:3
 ntests = length(coefficients)
-iterations = zeros(Int64, ntests, 3)
+iterations = zeros(Int64, ntests, length(LSPreconditioners.preconditioner_types) + 1)
 
-for i in 3:ntests
+ptypes = LSPreconditioners.preconditioner_types
+
+for i in 1:ntests
     n = 2^coefficients[i]
-    A = matrixdepot("randsvd", n, 1e2)
-    b = rand(n)
-    dump(b)
-    (x, stats) = bicgstab(A, b;itmax=itmax, history=true)
-    iterations[i, 1] = stats.niter
+    A = matrixdepot("wathen", n)
+    b = rand(size(A, 1))
     
-    PA = DiagonalPreconditioner(A)
-    (x, stats) = bicgstab(A, b; M=PA, itmax=itmax, history=true)
-    iterations[i, 2] = stats.niter
+    (x, stats) = bicgstab(A, b; itmax=itmax, history=true)
+    iterations[i, 1] = stats.niter
+
+    for j=1:length(ptypes)
+        PA = ptypes[j](A)
+        (x, stats) = bicgstab(A, b; M=PA, itmax=itmax, history=true)
+        iterations[i, j + 1] = stats.niter
+    end
 end
 
+using Plots
+
+plot(coefficients, iterations, label=["No preconditioner" ptypes...], xlabel="log2(n)", ylabel="Iterations", legend=:topleft)
