@@ -1,7 +1,7 @@
 mutable struct BlockJacobi{T, S<:AbstractMatrix{T}} <: LSPreconditioners.Preconditioner
     nblocks::Int64
     blocksizes::Array{Int}
-    blocks::Vector{Union{LU{T, Matrix{T}, Vector{Int}}, SuiteSparse.UMFPACK.UmfpackLU{Float64, Int}}}
+    blocks::Vector{Union{LU{T, Matrix{T}, Vector{Int}}, UmfpackLU{T, Int}}}
 end
 
 Base.eltype(::BlockJacobi{T, S}) where {T, S} = T
@@ -23,7 +23,7 @@ function BlockJacobi(A::AbstractMatrix, blocksize::Integer)
     for i in 1:nblocks
         startp = endp + 1
         endp = startp + bsizes[i] - 1
-        @views blocks[i] = lu(A[startp:endp, startp:endp])
+        blocks[i] = lu(A[startp:endp, startp:endp])
     end
 
     return BlockJacobi{eltype(A), typeof(A)}(nblocks, bsizes, blocks)
@@ -40,13 +40,13 @@ function LinearAlgebra.mul!(x, P::BlockJacobi, y)
     for i in 1:P.nblocks
         startp = endp + 1 
         endp = startp + P.blocksizes[i] - 1 
-        @views ldiv!(x[startp:endp], P.blocks[i], y[startp:endp])
+        ldiv!(x[startp:endp], P.blocks[i], y[startp:endp])
     end
 end
 
 function get_blocks(A::SparseMatrixCSC, nblocks)
     T = eltype(A)
-    return Vector{SuiteSparse.UMFPACK.UmfpackLU{T, Int}}(undef, nblocks)
+    return Vector{UmfpackLU{T, Int}}(undef, nblocks)
 end 
 
 function get_blocks(A::Matrix, nblocks)
