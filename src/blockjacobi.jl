@@ -1,10 +1,10 @@
-mutable struct BlockJacobi{T, S<:AbstractMatrix{T}} <: LSPreconditioners.Preconditioner
+mutable struct BlockJacobi{T, F<:Factorization{T}} <: LSPreconditioners.Preconditioner
     nblocks::Int64
     blocksizes::Array{Int}
-    blocks::Vector{Union{LU{T, Matrix{T}, Vector{Int}}, UmfpackLU{T, Int}, BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}}}}
+    blocks::Vector{F}
 end
-
-Base.eltype(::BlockJacobi{T, S}) where {T, S} = T
+#Vector{Union{LU{T, Matrix{T}, Vector{Int}}, UmfpackLU{T, Int}, BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}}}}
+Base.eltype(::BlockJacobi{T,F}) where {T, F} = T
 
 # Function to form a block Jacobi preconditioner
 function BlockJacobi(A::AbstractMatrix, blocksize::Integer)
@@ -26,7 +26,7 @@ function BlockJacobi(A::AbstractMatrix, blocksize::Integer)
         blocks[i] = lu(A[startp:endp, startp:endp])
     end
 
-    return BlockJacobi{eltype(A), typeof(A)}(nblocks, bsizes, blocks)
+    return BlockJacobi{eltype(A), typeof(blocks[1])}(nblocks, bsizes, blocks)
 end
 
 function BlockJacobi(A)

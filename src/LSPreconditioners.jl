@@ -1,7 +1,7 @@
 module LSPreconditioners
 
 import LinearAlgebra
-import LinearAlgebra: mul!, diag, lu, LU, ldiv!
+import LinearAlgebra: mul!, diag, lu, LU, ldiv!, Factorization
 
 import SparseArrays: SparseMatrixCSC
 import BandedMatrices: BandedMatrix, BandedLU
