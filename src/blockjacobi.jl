@@ -40,7 +40,7 @@ function LinearAlgebra.mul!(x, P::BlockJacobi, y)
     for i in 1:P.nblocks
         startp = endp + 1 
         endp = startp + P.blocksizes[i] - 1 
-        ldiv!(x[startp:endp], P.blocks[i], y[startp:endp])
+        @views ldiv!(x[startp:endp], P.blocks[i], y[startp:endp])
     end
 end
 
@@ -51,10 +51,17 @@ end
 
 function get_blocks(A::Matrix, nblocks)
     T = eltype(A)
-    return Vector{LU{T, Matrix{T}, Vector{Int}}}(undef, nblocks)
+   # if T<:Float64 || T<:ComplexF64
+        return Vector{LU{T, Matrix{T}, Vector{LinearAlgebra.BlasInt}}}(undef, nblocks)
+   # elseif T<:Float32 || T<:ComplexF32
+    #    return Vector{LU{T, Matrix{T}, Vector{Int32}}}(undef, nblocks)
+#    else
+ #       println("Matrix Element types must be either Float32, Float64, ComplexF32, ComplexF64")
+  #  end
+
 end 
 
 function get_blocks(A::BandedMatrix, nblocks)
     T = eltype(A)
-    return Vector{BandedMatrices.BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}}}(undef, nblocks) 
+    return Vector{BandedLU{T, BandedMatrix{T, Matrix{T}, Base.OneTo{Int}}}}(undef, nblocks) 
 end 
