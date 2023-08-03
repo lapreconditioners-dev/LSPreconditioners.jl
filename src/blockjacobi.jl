@@ -1,5 +1,5 @@
 mutable struct BlockJacobi{T, F<:Factorization{T}} <: LSPreconditioners.Preconditioner
-    nblocks::Int64
+    nblocks::Int
     blocksizes::Array{Int}
     blocks::Vector{F}
 end
@@ -51,14 +51,7 @@ end
 
 function get_blocks(A::Matrix, nblocks)
     T = eltype(A)
-   # if T<:Float64 || T<:ComplexF64
         return Vector{LU{T, Matrix{T}, Vector{LinearAlgebra.BlasInt}}}(undef, nblocks)
-   # elseif T<:Float32 || T<:ComplexF32
-    #    return Vector{LU{T, Matrix{T}, Vector{Int32}}}(undef, nblocks)
-#    else
- #       println("Matrix Element types must be either Float32, Float64, ComplexF32, ComplexF64")
-  #  end
-
 end 
 
 function get_blocks(A::BandedMatrix, nblocks)
