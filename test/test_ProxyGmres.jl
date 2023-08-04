@@ -1,33 +1,29 @@
-#=@testset "ProxyGmresApply" begin
+@testset "ProxyGmresApply" begin
     for FC in (Float32, Float64, ComplexF32, ComplexF64)
         b = rand(FC, 10)
         x = zeros(FC, 10)
         #Satrt with DenseMatrix
         A = rand(FC, 10, 10)
-        P = LSPreconditioners.ProxyGmres(A, 10, 2)
+        P = ProxyGmres(A, 10, 2)
         mul!(x, P, b)
         @test x ≈ ApplyPolSR(b,A,P.H,P.a,P.k) 
-        P = LSPreconditioners.ProxyGmres(A, 10, 10)
+        P = ProxyGmres(A, 10, 10)
         mul!(x, P, b)
         @test x ≈ ApplyPol(b,A,P.H,P.a) 
         #Next to BandedMatrix
         A = brand(FC, 10, 3, 3)
-        P = LSPreconditioners.ProxyGmres(A, 10, 2)
+        P = ProxyGmres(A, 10, 2)
         mul!(x, P, b)
         @test x ≈ ApplyPolSR(b,A,P.H,P.a,P.k) 
-        P = LSPreconditioners.ProxyGmres(A, 10, 10)
+        P = ProxyGmres(A, 10, 10)
         mul!(x, P, b)
         @test x ≈ ApplyPol(b,A,P.H,P.a) 
-    end
-    for FC in (Float64, ComplexF64)
-        b = rand(FC, 10)
-        x = zeros(FC, 10)
         #Finish with sparsematrices
         A = sprand(FC, 10, 10, .99)
-        P = LSPreconditioners.ProxyGmres(A, 10, 2)
+        P = ProxyGmres(A, 10, 2)
         mul!(x,P,b)
         @test x ≈ ApplyPolSR(b,A,P.H,P.a,P.k) 
-        P = LSPreconditioners.ProxyGmres(A, 10, 2)
+        P = ProxyGmres(A, 10, 2)
         mul!(x, P, b)
         @test x ≈ ApplyPol(b,A,P.H,P.a) 
     end
@@ -39,35 +35,31 @@ end
         x = zeros(FC, 10)
         #Satrt with DenseMatrix
         A = rand(FC, 10, 10)
-        P = LSPreconditioners.CompoundProxyGmres(A, 10, 3, 2, 2)
+        P = CompoundProxyGmres(A, 10, 3, 2, 2)
         mul!(x, P, b)
         @test x ≈ ApplyCompound(b,A,P.P1.H,P.P1.a,P.P1.k,P.P2.H,P.P2.a,P.P2.k) 
-        P = LSPreconditioners.CompoundProxyGmres(A, 10, 2, 10, 2)
+        P = CompoundProxyGmres(A, 10, 2, 10, 2)
         mul!(x, P, b)
         @test x ≈ ApplyCompound(b,A,P.P1.H,P.P1.a,P.P1.k,P.P2.H,P.P2.a,P.P2.k) 
         #Next to BandedMatrix
         A = brand(FC, 10, 3, 3)
-        P = LSPreconditioners.CompoundProxyGmres(A, 10, 3, 2, 2)
+        P = CompoundProxyGmres(A, 10, 3, 2, 2)
         mul!(x, P, b)
         @test x ≈ ApplyCompound(b,A,P.P1.H,P.P1.a,P.P1.k,P.P2.H,P.P2.a,P.P2.k) 
-        P = LSPreconditioners.CompoundProxyGmres(A, 10, 2, 10, 2)
+        P = CompoundProxyGmres(A, 10, 2, 10, 2)
         mul!(x, P, b)
         @test x ≈ ApplyCompound(b,A,P.P1.H,P.P1.a,P.P1.k,P.P2.H,P.P2.a,P.P2.k) 
-    end
-    for FC in (Float64, ComplexF64)
-        b = rand(FC, 10)
-        x = zeros(FC, 10)
         #Finish with sparsematrices
         A = sprand(FC, 10, 10, .99)
-        P = LSPreconditioners.CompoundProxyGmres(A, 10, 3, 2, 2)
+        P = CompoundProxyGmres(A, 10, 3, 2, 2)
         mul!(x,P,b)
         @test x ≈ ApplyCompound(b,A,P.P1.H,P.P1.a,P.P1.k,P.P2.H,P.P2.a,P.P2.k) 
-        P = LSPreconditioners.CompoundProxyGmres(A, 10, 2, 10, 2)
+        P = CompoundProxyGmres(A, 10, 2, 10, 2)
         mul!(x, P, b)
         @test x ≈ ApplyCompound(b,A,P.P1.H,P.P1.a,P.P1.k,P.P2.H,P.P2.a,P.P2.k) 
     end
 end
-=#
+
 #Simple Implementations of the applications of the ProxyGMRES functions 
 function ApplyPol(v,A,H,a)
     m = length(v)
@@ -79,7 +71,11 @@ function ApplyPol(v,A,H,a)
         @views V[:,i+1] = 1/H[i+1,i] * (A * V[:,i] - V[:,1:i] * H[1:i,i]) 
     end
 
-    return real.(V * a)
+    if eltype(A) <: Complex
+        return V * a
+    else
+        return real(V * a)
+    end
 
 end
 
@@ -98,7 +94,11 @@ function ApplyPolSR(v,A,H,a,k)
 
     end
 
-    return real.(V * a)
+    if eltype(A) <: Complex
+        return V * a
+    else
+        return real(V * a)
+    end
 end
 
 function ApplyCompound(v,A,H1,a1,k1,H2,a2,k2)
@@ -116,6 +116,10 @@ function ApplyCompound(v,A,H1,a1,k1,H2,a2,k2)
         
     end
 
-    b = (V * a2)
-    return real.(ApplyPolSR(b,A,H1,a1,k1))
+    if eltype(A) <: Complex
+        b = V * a2
+    else
+        b = real(V * a2)
+    end
+    return ApplyPolSR(b,A,H1,a1,k1)
 end
