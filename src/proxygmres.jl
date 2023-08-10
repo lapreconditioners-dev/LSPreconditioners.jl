@@ -1,5 +1,5 @@
 """
-    ProxyGmres{T}
+    ProxyGmres{T} <: Preconditioner
     Array wrapper for proxy gmres function
 
     # Fields
@@ -15,7 +15,7 @@
     # References:
     * Xin Ye, Yuanzhe Xi, and Yousef Saad. 2021. Proxy-GMRES: Preconditioning via GMRES in Polynomial Space. SIAM J. Matrix Anal. Appl. 42, 3 (January 2021), 1248–1267. https://doi.org/10.1137/20M1342562
 """
-mutable struct ProxyGmres{T} <: LSPreconditioners.Preconditioner
+mutable struct ProxyGmres{T} <: Preconditioner
     A::AbstractMatrix{T}
     V::Matrix{ComplexF64}
     a::Vector{ComplexF64}
@@ -34,7 +34,7 @@ end
     - `P1::ProxyGmres`: Inner polynomial preconditioner in compound sequence.
     - `P2::ProxyGmres`: Outer polynomial preconditioner in compound sequence.
 """
-mutable struct CompoundProxyGmres{T} <: LSPreconditioners.Preconditioner
+mutable struct CompoundProxyGmres{T} <: Preconditioner
     P1::ProxyGmres
     P2::ProxyGmres
 end
@@ -46,6 +46,7 @@ end
     - `A::AbstractMatrix`: The matrix beinng preconditioned.
     - `d::Int`: The degree of the polynomial.
     - `k::Int`: The width of the partial orthogonalization.
+
     # Returns
     - `ProxyGmres{T}`: The preconditioner information.
 """
@@ -81,12 +82,12 @@ end
     - `k2::Int`: The width of the outer polynomial for the partial orthogonalization.
 
     # Keywords
-    - `radius::Float`: The radius of the circle boundary aligning with the outer polynomial.
+    - `radius::Float`: The radius of the circle boundary aligning with the outer polynomial.  
 
-    # returns
+    # Returns
     - `CompoundProxyGmres{T}`: The preconditioner information.
 """
-function CompoundProxyGmres(A::AbstractMatrix, d1::Int, d2::Int, k1::Int, k2::Int; radius = 1)
+function CompoundProxyGmres(A::AbstractMatrix, d1::Int, d2::Int, k1::Int, k2::Int; radius = 1.0)
     m,n = size(A)
     T = eltype(A)
     ai = min(m, 100)
@@ -117,14 +118,52 @@ function CompoundProxyGmres(A::AbstractMatrix, d1::Int, d2::Int, k1::Int, k2::In
                                 )
 end
 
-function LinearAlgebra.mul!(x::AbstractVector, P::ProxyGmres, y::AbstractVector)
+function mul!(x::AbstractVector, P::ProxyGmres, y::AbstractVector)
     copy!(x, y)
     ApplyPoly!(x, P)
 end
 
-function LinearAlgebra.mul!(x::AbstractVector, P::CompoundProxyGmres, y::AbstractVector)
+function mul!(P::ProxyGmres, y::AbstractVector)
+    ApplyPoly!(y, P)
+end
+
+function mul!(x::AbstractVector, P::CompoundProxyGmres, y::AbstractVector)
     copy!(x, y)
     ApplyCompoundPoly!(x, P)
+end
+
+function mul!(P::CompoundProxyGmres, y::AbstractVector)
+    ApplyCompoundPoly!(y, P)
+end
+
+function ldiv!(x::AbstractVector, P::ProxyGmres, y::AbstractVector)
+    copy!(x, y)
+    ApplyPoly!(x, P)
+end
+
+function ldiv!(P::ProxyGmres, y::AbstractVector)
+    ApplyPoly!(y, P)
+end
+
+function (\)(P::ProxyGmres, y::AbstractVector)
+    x = deepcopy(y)
+    ApplyPoly!(x, P)
+    return x
+end
+
+function ldiv!(x::AbstractVector, P::CompoundProxyGmres, y::AbstractVector)
+    copy!(x, y)
+    ApplyCompoundPoly!(x, P)
+end
+
+function ldiv!(P::CompoundProxyGmres, y::AbstractVector)
+    ApplyCompoundPoly!(y, P)
+end
+
+function (\)(P::CompoundProxyGmres, y::AbstractVector)
+    x = deepcopy(y)
+    ApplyCompoundPoly!(x, P)
+    return x
 end
 
 function ComputePoly(z::AbstractArray, m::Integer, k::Integer; tol = 1e-12)
@@ -269,7 +308,7 @@ function reorderH!(P::ProxyGmres, i::Int,  start1::Int, end1::Int,  start2::Int)
     l = start1
     #Handle to the left current index
     @inbounds @simd for j in 1:m
-        P.hs[j] = P.H[l,i]
+        P.hs[j] = P.H[l, i]
         l += 1
     end
 
@@ -277,7 +316,7 @@ function reorderH!(P::ProxyGmres, i::Int,  start1::Int, end1::Int,  start2::Int)
     if i > k
         l = start2
         @inbounds @simd for j in m+1:k
-            P.hs[j] = P.H[l,i]
+            P.hs[j] = P.H[l, i]
             l += 1
         end
 
@@ -315,7 +354,7 @@ function c2r(a::Complex)
 end
 
 # Function that generates a specified number of intermediate points between two endpoints
-function inter_points(p1, p2, npoints::AbstractVector)
+function inter_points(p1, p2, npoints::Int)
     delt = 1 / (npoints - 1)
     k = 0.
     coordinates = Array{ComplexF64}(undef, npoints)
@@ -349,7 +388,7 @@ function genBound(evs::AbstractVector, npoints::Int)
 end
 
 #function to generate the boundary of a circle 
-function GenCircle(center::Number, radius::Float, npoints::Float)
+function GenCircle(center::Number, radius::Number, npoints::Int)
     tpoints = div(npoints,4)
     circle = Array{ComplexF64}(undef, tpoints*4)
     delt = radius * 1 / (tpoints - 1) 
