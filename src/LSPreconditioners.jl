@@ -14,17 +14,19 @@ using .UMFPACK: UmfpackLU
 abstract type Preconditioner end
 
 include("diagonal.jl")
-include("blockJacobi.jl")
-include("SPAI.jl")
+include("blockjacobi.jl")
+include("spai.jl")
 include("proxygmres.jl")
 include("ilu.jl")
+include("sor.jl")
 
 export DiagonalPreconditioner
 export BlockJacobi
 export SPAI
 export ProxyGmres, CompoundProxyGmres
 export ILU
+export SOR
 
-preconditioner_types = [BlockJacobi, CompoundProxyGmres, DiagonalPreconditioner, ILU, ProxyGmres, SPAI]
+preconditioner_types = [BlockJacobi, CompoundProxyGmres, DiagonalPreconditioner, ILU, ProxyGmres, SPAI, SOR]
 
 end # module LSPreconditioners

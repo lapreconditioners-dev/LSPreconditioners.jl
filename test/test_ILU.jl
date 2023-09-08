@@ -5,7 +5,7 @@
         xw = zeros(FC, 20)
         xt = zeros(FC, 20)
         #Start with ILUZero
-        A = sprand(FC, 20, 20, .99)
+        A = sprand(FC, 20, 20, .9999)
         Pw = LSPreconditioners.ILU(A)
         Pt = ilu0(A)
         mul!(xw, Pw, b)
@@ -23,7 +23,7 @@
         xw = zeros(FC, 20)
         xt = zeros(FC, 20)
         #Start with ILUZero
-        A = sprand(FC, 20, 20, .99)
+        A = sprand(FC, 20, 20, .9999)
         Pw = LSPreconditioners.ILU(A)
         Pt = ilu0(A)
         ldiv!(xw, Pw, b)
@@ -40,7 +40,7 @@
         b = rand(FC, 20)
         c = deepcopy(b)
         #Start with ILUZero
-        A = sprand(FC, 20, 20, .99)
+        A = sprand(FC, 20, 20, .9999)
         Pw = LSPreconditioners.ILU(A)
         Pt = ilu0(A)
         mul!(Pw, b)
@@ -59,7 +59,7 @@
         b = rand(FC, 20)
         c = deepcopy(b)
         #Start with ILUZero
-        A = sprand(FC, 20, 20, .99)
+        A = sprand(FC, 20, 20, .9999)
         Pw = LSPreconditioners.ILU(A)
         Pt = ilu0(A)
         mul!(Pw, b)
