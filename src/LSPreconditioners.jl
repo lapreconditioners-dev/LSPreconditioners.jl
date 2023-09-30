@@ -18,6 +18,7 @@ include("blockjacobi.jl")
 include("spai.jl")
 include("proxygmres.jl")
 include("ilu.jl")
+include("jacobi.jl")
 include("sor.jl")
 
 export DiagonalPreconditioner
@@ -25,8 +26,7 @@ export BlockJacobi
 export SPAI
 export ProxyGmres, CompoundProxyGmres
 export ILU
+export Jacobi
 export SOR
-
-preconditioner_types = [BlockJacobi, CompoundProxyGmres, DiagonalPreconditioner, ILU, ProxyGmres, SPAI, SOR]
-
+preconditioner_types = [BlockJacobi, CompoundProxyGmres, DiagonalPreconditioner, ILU, ProxyGmres, SPAI, Jacobi, SOR]
 end # module LSPreconditioners
